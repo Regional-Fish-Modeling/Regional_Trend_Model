@@ -1,0 +1,93 @@
+model{
+  for(i in 1:nSites){
+    for(t in 1:nYears){
+    N[i,t] ~ dpois(lambda[i,t])
+    log(lambda[i,t]) <- alpha[i] + xi[i,t]
+    }
+
+# Priors on site intercepts    
+    alpha[i] ~ dunif(-5,5)
+    
+# area-specific trends
+    xi[i,1:nYears] ~ car.normal(adj.tm[],weights.tm[],num.tm[],prec.xi[i])
+    # hierarchical modelling of the local temporal variability
+    prec.xi[i] <- pow(var.xi[i],-1)
+    var.xi[i] <- exp(log.var.xi[i])
+    log.var.xi[i] ~ dnorm(mean.log.var.xi,prec.log.var.xi)
+    sigma.xi[i] <- pow(var.xi[i],0.5)
+    }
+    
+    # hyper priors
+    mean.log.var.xi ~ dnorm(0,0.001)
+    prec.log.var.xi <- pow(var.log.var.xi,-1)
+    var.log.var.xi <- pow(sd.log.var.xi,2)
+    sd.log.var.xi ~ dnorm(0,prec.sd.log.var.xi)I(0,)
+    sd.sd.log.var.xi <- 2.5
+    prec.sd.log.var.xi <- pow(sd.sd.log.var.xi,-2)
+    
+    
+    
+    # Specify weight matrix and adjacency matrix corresponding to RW(1) prior 
+    for(t in 1:1) {
+    weights.tm[t] <- 1;
+    adj.tm[t] <- t+1;
+    num.tm[t] <- 1
+    }
+    for(t in 2:(nYears-1)) {
+    weights.tm[2+(t-2)*2] <- 1;
+    adj.tm[2+(t-2)*2] <- t-1
+    weights.tm[3+(t-2)*2] <- 1;
+    adj.tm[3+(t-2)*2] <- t+1;
+    num.tm[t] <- 2
+    }
+    for(t in nYears:nYears) {
+    weights.tm[(nYears-2)*2 + 2] <- 1;
+    adj.tm[(nYears-2)*2 + 2] <- t-1;
+    num.tm[t] <- 1
+    }
+    
+    # END RW1
+    
+    # Priors: intercepts
+    #   for(i in 1:nSites){
+    #     alpha[i] ~ dunif(-5,5)
+    #   }
+    
+    #   # Priors: slopes
+    #   for(h in 1:nCovs){
+    #     for(i in 1:nSites){
+    #       b[h,i] ~ dnorm(mu.b[h,i], tau.b[h])
+    #       mu.b[h,i] <- g.0[h] + g.1[h]*elev[i]
+    #     }  
+    #     g.0[h] ~ dnorm(0, 0.01)
+    #     g.1[h] ~ dnorm(0, 0.01)  
+    #     tau.b[h] <- pow(sigma.b[h], -2)
+    #     sigma.b[h] ~ dunif(0,3)
+    #     sigma2.b[h] <- pow(sigma.b[h], 2)
+    #   }
+    
+    # Detection
+    for(i in 1:nSites){
+    for(t in 1:nYears){
+    y[i,t,1] ~ dbin(p[i,t], N[i,t])
+    Nr[i,t] <- N[i,t] - y[i,t,1]
+    y[i,t,2] ~ dbin(p[i,t],Nr[i,t])
+    Nr1[i,t] <- Nr[i,t] - y[i,t,2]
+    y[i,t,3] ~ dbin(p[i,t],Nr1[i,t])
+    
+    # y[i,t,2] ~ dbin(p[i,t]*(1-p[i,t]), N[i,t])
+    # y[i,t,3] ~ dbin(p[i,t]*(1-p[i,t])*(1-p[i,t]), N[i,t])
+    p[i,t] <- 1/(1 + exp(-lp.lim[i,t]))
+    lp.lim[i,t] <- min(999, max(-999, lp[i,t]))
+    lp[i,t] <- p.mu # + p.b1*prcp7day[i,t] + p.b2*sampday[i,t]
+    }
+    }
+    
+    # Priors: detection
+    p.mean ~ dunif(0.1, 0.9)
+    p.mu <- log(p.mean/(1-p.mean))
+    p.b1 ~ dnorm(0, 0.37)I(-3,3)
+    p.b2 ~ dnorm(0, 0.37)I(-3,3)
+    
+    } # end model
+    
