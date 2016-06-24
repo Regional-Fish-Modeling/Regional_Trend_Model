@@ -64,11 +64,11 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 inits <- function() list(N=array(500, dim=c(nSites, nYears)),
                          p.mean=0.5)
 
-parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b") #, "p")
+parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean") #, "p")
 
 
 # MCMC settings
-ni <- 7000
+ni <- 70000
 nt <- 3
 nb <- 5000
 nc <- 3
