@@ -1,5 +1,7 @@
 # Regional Trend Model
 
+## Objectives
+
 ## Run
 
 1. `run_gompertz.R`
