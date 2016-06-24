@@ -56,18 +56,26 @@ N <- nSites
 # xi = site trend
 
 # Site=specific trend
-SiteTrend <- array(NA, c(out$n.sims, T,N) )
+# SiteTrend <- array(NA, c(out$n.sims, T,N) )
+# for(t in 1:T){
+# 	for(n in 1:N){
+# 		SiteTrend[,t,n] <- exp(out$sims.list$xi[,n,t] + out$sims.list$alpha[,n])
+# 	}
+# }	
+
+SiteTrend <- array(NA, c(dim(out$sims.list$N)[1], T, N) )
 for(t in 1:T){
 	for(n in 1:N){
-		SiteTrend[,t,n] <- exp(out$sims.list$xi[,n,t] + out$sims.list$alpha[,n])
+		SiteTrend[,t,n] <- out$sims.list$N[,n,t]
 	}
-}	
+}
+# SiteTrend <- out$sims.list$N
 
 
 SiteTrend2 <- matrix(NA, nrow=T, ncol=N)
 for(t in 1:T){
 	for(n in 1:N){
-		SiteTrend2[t,n] <- mean(SiteTrend[,t,n])
+		SiteTrend2[t,n] <- median(SiteTrend[,t,n])
 	}
 }	
 
@@ -102,7 +110,7 @@ for(t in 1:T){
 abund <- matrix(NA, nrow=T, ncol=N)
 for(t in 1:T){
   for(n in 1:N){
-    abund[t,n] <- mean(out$sims.list$N[,n,t])
+    abund[t,n] <- median(out$sims.list$N[,n,t])
   }
 }	
 
