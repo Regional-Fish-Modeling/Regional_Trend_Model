@@ -7,8 +7,14 @@ model{
   tau.r <- sigma.r * sigma.r
   sigma.r ~ dunif(0, 10)
   alpha.r ~ dunif(0, 10)
-  K ~ dunif(0, 1000)
-  lambda1 ~ dunif(0, 2000)
+  
+  # priors on initial abundance
+  alpha.0 ~ dnorm(0, 0.001)
+  for(i in 1:nSites) {
+    site.0[i] ~ dnorm(0, tau.0)
+  }
+  tau.0 <- sigma.0 * sigma.0
+  sigma.0 ~ dunif(0, 100)
   
   # Priors: random slopes (uncorrelated currently)
   # for(h in 1:nCovs){
@@ -30,10 +36,11 @@ model{
   
   # Abundance
   for(i in 1:nSites){
-    N[i,1] ~ dpois(lambda1)
+    N[i,1] ~ dpois(lambda.0[i])
+    log(lambda.0[i]) <- alpha.0 + site.0[i]
     for(t in 2:nYears){
       N[i,t] ~ dpois(lambda[i,t-1]) # t-1 is just for accounting
-      lambda[i,t-1] <- N[i,t-1] * exp(r[i,t-1] * (1 - log(N[i,t-1] + 1) / log(K + 1)))
+      lambda[i,t-1] <- N[i,t-1] * exp(r[i,t-1] * (1 - log(N[i,t-1] + 1) / log(K[i] + 1))) # + rho[i,t-1] # + siteLength[i,j]
       }
   }
   
@@ -45,7 +52,15 @@ model{
     }
   }
   
-  # regression on carrying capacity (drainage area)
+  # regression on carrying capacity (add drainage area)
+  for(i in 1:nSites) {
+    K[i] <- K.0 + K.site[i]
+    K.site[i] ~ dnorm(0, tau.k) # prior on K.site
+  }
+  K.0 ~ dunif(0, 10000)
+  # hyperpriors for K
+  tau.k <- sigma.k * sigma.k
+  sigma.k ~ dunif(0, 100)
   
   # add density independent factors
   
