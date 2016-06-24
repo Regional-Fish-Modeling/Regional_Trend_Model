@@ -1,18 +1,53 @@
 model{
   
   # Priors
-  r ~ dunif(0, 1)
-  K ~ dunif(0, 10000)
-  lambda1 ~ dunif(0, 10000)
+  for(i in 1:nSites){
+    site.r[i] ~ dnorm(0, tau.r)
+  }
+  tau.r <- sigma.r * sigma.r
+  sigma.r ~ dunif(0, 10)
+  alpha.r ~ dunif(0, 10)
+  K ~ dunif(0, 1000)
+  lambda1 ~ dunif(0, 2000)
+  
+  # Priors: random slopes (uncorrelated currently)
+  # for(h in 1:nCovs){
+  #   for(i in 1:nSites){
+  #     b[h,i] ~ dnorm(mu.b[h], tau.b[h])
+  #   }
+  #   # hyperpriors
+  #   mu.b[h] ~ dnorm(0, 0.01)
+  #   tau.b[h] <- sigma.b[h] * sigma.b[h]
+  #   sigma.b[h] ~ dunif(0, 10)
+  # }
+  
+  # fixed slops
+  for(h in 1:nCovs) {
+    b[h] ~ dnorm(mu.b[h], tau.b[h])
+    mu.b[h] ~ dnorm(0, 0.01)
+    tau.b[h] ~ dunif(0, 10)
+  }
   
   # Abundance
   for(i in 1:nSites){
     N[i,1] ~ dpois(lambda1)
     for(t in 2:nYears){
       N[i,t] ~ dpois(lambda[i,t-1]) # t-1 is just for accounting
-      lambda[i,t-1] <- N[i,t-1] * exp(r * (1 - log(N[i,t-1] + 1) / log(K + 1)))
+      lambda[i,t-1] <- N[i,t-1] * exp(r[i,t-1] * (1 - log(N[i,t-1] + 1) / log(K + 1)))
+      }
+  }
+  
+  # regession on intrinsic growth rate
+  for(i in 1:nSites){
+    for(t in 1:(nYears-1)){
+  # r[i,t] <- alpha.r + site.r[i] + b[1,i]*fall.prcp[i,t] + b[2,i]*winter.prcp[i,t] + b[3,i]*spring.prcp[i,t] + b[4,i]*fall.tmean[i,t] + b[5,i]*winter.tmean[i,t] + b[6,i]*spring.tmean[i,t]
+  r[i,t] <- alpha.r + site.r[i] + b[1]*fall.prcp[i,t] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t]
     }
   }
+  
+  # regression on carrying capacity (drainage area)
+  
+  # add density independent factors
   
   # Detection
   for(i in 1:nSites){

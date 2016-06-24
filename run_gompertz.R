@@ -45,8 +45,11 @@ dim(ADUFish)
 
 nSites <- dim(ADUFish)[1]
 nYears <- dim(ADUFish)[2]
+nCovs <- 6
 
-dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish)
+dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
+            fall.tmean=FallTmeanStd, winter.tmean=WinterTmeanStd, spring.tmean=SpringTmeanStd, 
+            prcp7day=prcp7day.std, sampday=sampday.std, elev=elev.std)
 
 # # Bundle data for Adult model
 # dat <- list(nSites=nSites, nYears=nYears, nCovs=nCovs, y=ADUFish,
@@ -61,13 +64,13 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish)
 inits <- function() list(N=array(500, dim=c(nSites, nYears)),
                          p.mean=0.5)
 
-parameters <- c("N", "r", "K") #, "p")
+parameters <- c("N", "K", "alpha.r", "sigma.r", "b") #, "p")
 
 
 # MCMC settings
-ni <- 70000
+ni <- 7000
 nt <- 3
-nb <- 50000
+nb <- 5000
 nc <- 3
 
 
@@ -76,9 +79,7 @@ nc <- 3
 start.time = Sys.time()         # Set timer 
 # Call BUGS from R 
 
-out <- jags(data = dat, inits = inits, parameters.to.save = parameters, 
-            model.file = "model_gompertz.R", n.chains = nc, n.thin = nt, n.iter = ni, 
-            n.burnin = nb, parallel = TRUE)
+out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = "model_gompertz.R", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 # 
 end.time = Sys.time()
@@ -91,6 +92,9 @@ print(out, dig = 3)
 
 sum1 <- out$summary
 # write.csv(sum1,'poisson.csv')
+
+out$mean$K
+out$mean$K
 
 # Find which parmeters, if any, have Rhat > 1.1
 which(out$summary[, c("Rhat")] > 1.1)
