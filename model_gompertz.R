@@ -98,4 +98,11 @@ model{
   p.b1 ~ dnorm(0, 0.37)I(-3,3)
   p.b2 ~ dnorm(0, 0.37)I(-3,3)
   
+  # Derived parameters
+  #for(i in 1:nSites) {
+    for(t in 1:nYears) {
+      N.region[t] <- sum(N[ ,t]) 
+    }
+ # }
+  
 }
