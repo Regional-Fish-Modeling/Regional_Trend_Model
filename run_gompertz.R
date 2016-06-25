@@ -61,14 +61,23 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 # alpha=array(runif(nSites,-5,5), dim=(nSites))
 # p.b1=array(rnorm(1,0), 1),
 # p.b2=array(rnorm(1,0), 1),
-inits <- function() list(N=array(500, dim=c(nSites, nYears)),
+
+# Make decent starting values for N
+N.init <- apply(dat$y, 1:2, sum)
+Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
+Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
+k <- which(is.na(N.init), arr.ind=TRUE)
+N.init[k] <- Ni.max[k[,1]]
+N.init <- (N.init + 1) * 2
+
+inits <- function() list(N=N.init, #N=array(500, dim=c(nSites, nYears)),
                          p.mean=0.5)
 
-parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean") #, "p")
+parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region") #, "p")
 
 
 # MCMC settings
-ni <- 70000
+ni <- 7000
 nt <- 3
 nb <- 5000
 nc <- 3
