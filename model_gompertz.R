@@ -4,7 +4,7 @@ model{
   for(i in 1:nSites){
     site.r[i] ~ dnorm(0, tau.r)
   }
-  tau.r <- sigma.r * sigma.r
+  tau.r <- pow(sigma.r, -2)
   sigma.r ~ dunif(0, 10)
   alpha.r ~ dunif(0, 10)
   
@@ -13,7 +13,7 @@ model{
   for(i in 1:nSites) {
     site.0[i] ~ dnorm(0, tau.0)
   }
-  tau.0 <- sigma.0 * sigma.0
+  tau.0 <- pow(sigma.0, -2)
   sigma.0 ~ dunif(0, 100)
   
   # Priors: random slopes (uncorrelated currently)
@@ -22,16 +22,17 @@ model{
   #     b[h,i] ~ dnorm(mu.b[h], tau.b[h])
   #   }
   #   # hyperpriors
-  #   mu.b[h] ~ dnorm(0, 0.01)
-  #   tau.b[h] <- sigma.b[h] * sigma.b[h]
-  #   sigma.b[h] ~ dunif(0, 10)
+  #   mu.b[h] ~ dnorm(0, 0.001)
+  #   tau.b[h] <- pow(sigma.b[h], -2)
+  #   sigma.b[h] ~ dunif(0, 100)
   # }
   
   # fixed slops
   for(h in 1:nCovs) {
     b[h] ~ dnorm(mu.b[h], tau.b[h])
     mu.b[h] ~ dnorm(0, 0.01)
-    tau.b[h] ~ dunif(0, 10)
+    sigma.b[h] ~ dunif(0, 10)
+    tau.b[h] <- pow(sigma.b[h], -2)
   }
   
   # Abundance
@@ -59,24 +60,25 @@ model{
   }
   K.0 ~ dunif(0, 10000)
   # hyperpriors for K
-  tau.k <- sigma.k * sigma.k
+  tau.k <- 1 / (sigma.k * sigma.k)
   sigma.k ~ dunif(0, 100)
   
   # add density independent factors
   for(i in 1:nSites){
     for(t in 1:(nYears-1)){
-      log(rho[i,t]) <- iota + eps.rho[i,t]
+      log(rho[i,t]) <- ln.iota + eps.rho[i,t]
     }
   }
   
   # density-independent priors
-  iota ~ dnorm(0, 0.001)
+  ln.iota ~ dnorm(0, 0.001)
+  iota <- exp(ln.iota)
   for(i in 1:nSites){
     for(t in 1:(nYears-1)){
       eps.rho[i,t] ~ dnorm(0, tau.eps.rho)
     }
   }
-  tau.eps.rho <- sigma.eps.rho * sigma.eps.rho
+  tau.eps.rho <- 1 / (sigma.eps.rho * sigma.eps.rho)
   sigma.eps.rho ~ dunif(0, 100)
   
   # Detection
@@ -96,7 +98,7 @@ model{
   p.mean ~ dunif(0.1, 0.9)
   p.mu <- log(p.mean/(1-p.mean))
   p.b1 ~ dnorm(0, 0.37)I(-3,3)
-  p.b2 ~ dnorm(0, 0.37)I(-3,3)
+ # p.b2 ~ dnorm(0, 0.37)I(-3,3)
   
   # Derived parameters
   #for(i in 1:nSites) {
