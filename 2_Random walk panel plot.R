@@ -181,3 +181,13 @@ par(def.par)
 dev.off()
 
 
+#----------- Overall Regional Trend -------------
+
+# convert to mean density?
+
+N.region <- data.frame(Year = plotYear, Mean = out$mean$N.region, LCRI = out$q2.5$N.region, UCRI = out$q97.5$N.region, stringsAsFactors = FALSE)
+
+ggplot(N.region, aes(Year, Mean)) + geom_line() + geom_point() + geom_ribbon(aes(ymin = LCRI, ymax = UCRI), alpha = 0.3) + ylab("Regional abundance") + theme_bw()
+
+ggsave(filename = "Output/Figures/Regional_Abundance.png")
+
