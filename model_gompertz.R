@@ -90,14 +90,14 @@ model{
       
       p[i,t] <- 1/(1 + exp(-lp.lim[i,t]))
       lp.lim[i,t] <- min(999, max(-999, lp[i,t]))
-      lp[i,t] <- p.mu # + p.b1*prcp7day[i,t]
+      lp[i,t] <- p.mu + b1.p*prcp7day[i,t]
     }
   }
   
   # Priors: detection
   p.mean ~ dunif(0.1, 0.9)
   p.mu <- log(p.mean/(1-p.mean))
-  p.b1 ~ dnorm(0, 0.37)I(-3,3)
+  b1.p ~ dnorm(0, 0.37)I(-3,3)
  # p.b2 ~ dnorm(0, 0.37)I(-3,3)
   
   # Derived parameters
