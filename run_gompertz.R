@@ -36,8 +36,8 @@ ADUFish
 dim(ADUFish)
 
 # Try on subset of data
-ADUFish <- ADUFish[1:30,,]
-dim(ADUFish)
+ADUFish <- ADUFish[1:10, , ]
+# dim(ADUFish)
 
 # Check sites
 # ADUFish[3,,]
@@ -63,31 +63,31 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 # p.b2=array(rnorm(1,0), 1),
 
 # Make decent starting values for N
-N.init <- apply(dat$y, 1:2, sum)
-Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
-Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
-k <- which(is.na(N.init), arr.ind=TRUE)
-N.init[k] <- Ni.max[k[,1]]
-N.init <- (N.init + 1) * 2
+# N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
+# Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
+# Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
+# k <- which(is.na(N.init), arr.ind=TRUE)
+# N.init[k] <- Ni.max[k[,1]]
+# N.init <- (N.init + 1) * 2
 
-inits <- function() list(N=N.init, #N=array(500, dim=c(nSites, nYears)),
-                         p.mean=0.5)
+inits <- function() list(N = array(2 * max(dat$y, na.rm = TRUE), dim=c(nSites, nYears)), # N.init
+                         p.mean = runif(1, 0.5, 0.7))
 
-parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region") #, "p")
+parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p") #, "p")
 
 
 # MCMC settings
-ni <- 7000
+ni <- 13000
 nt <- 3
-nb <- 5000
+nb <- 10000
 nc <- 3
 
 
 # bugs.dir <- getwd() # "C:/Program Files/WinBUGS14/"
 
-start.time = Sys.time()         # Set timer 
-# Call BUGS from R 
+start.time = Sys.time() # Set timer
 
+# Call BUGS from R 
 out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = "model_gompertz.R", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 # 
@@ -95,6 +95,15 @@ end.time = Sys.time()
 elapsed.time = round(difftime(end.time, start.time, units='mins'), dig = 2)
 cat('Posterior computed in ', elapsed.time, ' minutes\n\n', sep='') 
 # Calculate computation time
+
+# update to increase length of chains if need more - use for determining number needed for convergence
+# out <- update(out, n.iter = 20000)
+
+# Traceplots for parameters least likely to mix well or converge
+jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
+
+# Whisker plots
+whiskerplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
 
 # Summarize posteriors
 print(out, dig = 3)
