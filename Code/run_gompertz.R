@@ -4,30 +4,46 @@
 # Load working directory & libraries
 #setwd("C:/Users/nhitt/Desktop/BKTSouth_Nmix")
 #memory.limit(size=229355) # 7x the baseline memory limit (32765) 
-library(reshape2)
+# library(reshape2)
 # library(rjags)
 library(jagsUI)
-library(plyr)
-library(ggplot2)
-library(arm)
-library(boot)
+# library(plyr)
+# library(ggplot2)
+# library(arm)
+# library(boot)
 library(coda)
+library(readr)
+library(dplyr)
+
+#---------- set model -----------
+model <- "gompertz"
+
 # library(R2WinBUGS)
 
 # Fish count data
-load("Data_FishCountAr.RData")
+load("Data/Data_FishCountAr.RData")
 # Seasonal climate data
-load("Data_SeasonalClimateStd.RData") # Standardized to site-specific mean=0 and sd=1
+load("Data/Data_SeasonalClimateStd.RData") # Standardized to site-specific mean=0 and sd=1
 # Site covariate data
-load("Data_SiteCovsStd.RData") # Standardized to dataset-level mean=0 and sd=1
+load("Data/Data_SiteCovsStd.RData") # Standardized to dataset-level mean=0 and sd=1
 # Detection covariate data
-load("Data_DetectionCovsStd.RData") # Standardized to dataset-level mean=0 and sd=1
+load("Data/Data_DetectionCovsStd.RData") # Standardized to dataset-level mean=0 and sd=1
+
+SurveyLength <- read_csv("Data/BKT_SURVEY_LENGTH.csv")
 
 # Set up data structure
 # nSites=326; nYears=34; nCovs=6; nPasses=3
 
+# Make survey length sites and years line up with fish data
+SurveyLength <- data.frame(SiteID = dimnames(ADUFish)[[1]], stringsAsFactors = FALSE) %>%
+  dplyr::left_join(SurveyLength) %>%
+  dplyr::select(-SiteID)
+
+# Convert survey length into matrix for JAGS
+SurveyLength <- as.matrix(SurveyLength)
+
 # Adding 1 fish to abundances to avoid log(0) problem
-ADUFish <- ADUFish + 1
+ # ADUFish <- ADUFish + 1
 
 # prcp7day=prcp7day.std, sampday=sampday.std
 
@@ -49,7 +65,7 @@ nCovs <- 6
 
 dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
             fall.tmean=FallTmeanStd, winter.tmean=WinterTmeanStd, spring.tmean=SpringTmeanStd, 
-            prcp7day=prcp7day.std, sampday=sampday.std, elev=elev.std)
+            prcp7day=prcp7day.std, sampday=sampday.std, elev=elev.std, survey.length = SurveyLength)
 
 # # Bundle data for Adult model
 # dat <- list(nSites=nSites, nYears=nYears, nCovs=nCovs, y=ADUFish,
@@ -63,32 +79,41 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 # p.b2=array(rnorm(1,0), 1),
 
 # Make decent starting values for N
-# N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
-# Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
-# Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
-# k <- which(is.na(N.init), arr.ind=TRUE)
-# N.init[k] <- Ni.max[k[,1]]
-# N.init <- (N.init + 1) * 2
+N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
+Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
+Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
+k <- which(is.na(dat$y[ , , 1]), arr.ind=TRUE)
+N.init[k] <- Ni.max[k[,1]]
+N.init <- (N.init + 1) * 2
+N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
 
-inits <- function() list(N = array(2 * max(dat$y, na.rm = TRUE), dim=c(nSites, nYears)), # N.init
-                         p.mean = runif(1, 0.5, 0.7))
+# simple initial N
+# N.init <- array(2 * max(dat$y, na.rm = TRUE), dim=c(nSites, nYears)
 
-parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p") #, "p")
+inits <- function() list(N = N.init,
+                         p.mean = runif(1, 0.4, 0.8))
+
+if(model == "overdispersion") {
+parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p", "K.0") #, "p")
+} else {
+  parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p", "K.0") #, "p")
+}
 
 
 # MCMC settings
-ni <- 13000
+ni <- 1000
 nt <- 3
-nb <- 10000
+nb <- 1
 nc <- 3
 
 
 # bugs.dir <- getwd() # "C:/Program Files/WinBUGS14/"
+mod <- ifelse(model == "overdispersion", "Code/model_gompertz_od.R", "Code/model_gompertz.R")
 
 start.time = Sys.time() # Set timer
 
 # Call BUGS from R 
-out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = "model_gompertz.R", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = mod, n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 # 
 end.time = Sys.time()
@@ -100,7 +125,7 @@ cat('Posterior computed in ', elapsed.time, ' minutes\n\n', sep='')
 # out <- update(out, n.iter = 20000)
 
 # Traceplots for parameters least likely to mix well or converge
-jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
+jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "K.0")) #, "sigma.eps.rho"))
 
 # Whisker plots
 whiskerplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
