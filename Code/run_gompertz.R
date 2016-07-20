@@ -17,8 +17,10 @@ library(dplyr)
 
 #---------- set model -----------
 model <- "gompertz"
+testing <- FALSE
 
-# library(R2WinBUGS)
+
+#---------- Load Data ----------
 
 # Fish count data
 load("Data/Data_FishCountAr.RData")
@@ -52,7 +54,10 @@ ADUFish
 dim(ADUFish)
 
 # Try on subset of data
-ADUFish <- ADUFish[1:10, , ]
+if(testing ==TRUE) {
+  ADUFish <- ADUFish[1:10, , ]
+}
+
 # dim(ADUFish)
 
 # Check sites
@@ -101,9 +106,9 @@ parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "si
 
 
 # MCMC settings
-ni <- 1000
+ni <- 3000
 nt <- 3
-nb <- 1
+nb <- 1000
 nc <- 3
 
 
