@@ -38,7 +38,7 @@ model{
   # Abundance
   for(i in 1:nSites){
     N[i,1] ~ dpois(lambda.0[i])
-    log(lambda.0[i]) <- alpha.0 + site.0[i]
+    log(lambda.0[i]) <- alpha.0 + site.0[i] + log(siteLength[i,j])
     for(t in 2:nYears){
       N[i,t] ~ dpois(lambda[i,t-1]) # t-1 is just for accounting
       lambda[i,t-1] <- N[i,t-1] * exp(r[i,t-1] * (1 - log(N[i,t-1] + 1) / log(K[i] + 1))) + rho[i,t-1] # + siteLength[i,j]
