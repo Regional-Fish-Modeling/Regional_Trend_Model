@@ -133,7 +133,7 @@ size.text = 1.0
 x.label = 'Year'
 y.label = 'Abundance'
 
-plotYear <- 1982:2015
+plotYear <- 1982:2014
 
 
 nf <- layout(matrix( c(1:(N)),nrow=5,ncol=2,byrow=T),  TRUE) 
