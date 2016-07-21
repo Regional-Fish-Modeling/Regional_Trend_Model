@@ -21,21 +21,43 @@ model{
   
   # fixed slops
   for(h in 1:nCovs) {
-    b[h] ~ dnorm(mu.b[h], tau.b[h])
-    mu.b[h] ~ dnorm(0, 0.01)
-    sigma.b[h] ~ dunif(0, 10)
-    tau.b[h] <- pow(sigma.b[h], -2)
+    b[h] ~ dnorm(0, 0.001)
+    # b[h] ~ dnorm(mu.b[h], tau.b[h])
+    # mu.b[h] ~ dnorm(0, 0.01)
+    # sigma.b[h] ~ dunif(0, 10)
+    # tau.b[h] <- pow(sigma.b[h], -2)
   }
   
   # Abundance
+  # for(i in 1:nSites){
+  #   N[i,1] ~ dpois(lambda.0[i])
+  #   log(lambda.0[i]) <- alpha.0 + site.0[i] #+ log(survey.length[i,1])
+  #   for(t in 2:nYears){
+  #     N[i,t] ~ dpois(lambda[i,t-1]) # t-1 is just for accounting
+  #     # log(lambda[i,t-1]) <- log(N[i, t-1]) + b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + log(survey.length[i,t])
+  #     lambda[i,t-1] <- rho[i,t-1] # N[i, t-1] +
+  #   }
+  # }
+  
   for(i in 1:nSites){
-    N[i,1] ~ dpois(lambda.0[i])
-    log(lambda.0[i]) <- alpha.0 + site.0[i] + log(survey.length[i,1])
+    N[i,1] ~ dpois(lambda[i,1])
+    log(lambda[i,1]) <- alpha.0 + site.0[i]
     for(t in 2:nYears){
-      N[i,t] ~ dpois(lambda[i,t-1]) # t-1 is just for accounting
-      log(lambda[i,t-1]) <- alpha.0 + site.0[i] + b[1]*fall.prcp[i,t] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + log(survey.length[i,t])
+      N[i,t] ~ dpois(lambda.ef[i,t]) # t-1 is just for accounting
+      # log(lambda[i,t-1]) <- log(N[i, t-1]) + b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + log(survey.length[i,t])
+      log(lambda[i,t]) <- b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + rho[i,t-1] # N[i, t-1] +
+      lambda.ef[i,t] <- N[i, t-1] + lambda[i,t]
     }
   }
+  
+  # Rho priors
+  for(i in 1:nSites){
+    for(t in 1:(nYears-1)){
+      rho[i,t] ~ dnorm(0, tau.rho)
+    }
+  }
+  tau.rho <- 1 / (sigma.rho * sigma.rho)
+  sigma.rho ~ dunif(0.00001, 100)
   
   # Detection
   for(i in 1:nSites){
