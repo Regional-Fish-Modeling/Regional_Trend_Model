@@ -16,8 +16,7 @@ library(readr)
 library(dplyr)
 
 #---------- set model -----------
-model <- "overdispersion"
-testing <- FALSE
+testing <- TRUE
 
 
 #---------- Load Data ----------
@@ -45,17 +44,17 @@ SurveyLength <- data.frame(SiteID = dimnames(ADUFish)[[1]], stringsAsFactors = F
 SurveyLength <- as.matrix(SurveyLength)
 
 # Adding 1 fish to abundances to avoid log(0) problem
- # ADUFish <- ADUFish + 1
+# ADUFish <- ADUFish + 1
 
 # prcp7day=prcp7day.std, sampday=sampday.std
 
 rownames(ADUFish) <- NULL
-ADUFish <- ADUFish[1:291, , ]
+ADUFish <- ADUFish[ , 1:33, ]
 dim(ADUFish)
 
 # Try on subset of data
 if(testing ==TRUE) {
-  ADUFish <- ADUFish[1:30, , ]
+  ADUFish <- ADUFish[1:30, 1:33, ]
 }
 
 # dim(ADUFish)
@@ -65,10 +64,10 @@ if(testing ==TRUE) {
 # ADUFish[7,,]
 
 nSites <- dim(ADUFish)[1]
-nYears <- dim(ADUFish)[2]-1
+nYears <- dim(ADUFish)[2]
 nCovs <- 6
 
-dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2]-1, y=ADUFish[ , 1:33, ], nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
+dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
             fall.tmean=FallTmeanStd, winter.tmean=WinterTmeanStd, spring.tmean=SpringTmeanStd, 
             prcp7day=prcp7day.std, sampday=sampday.std, elev=elev.std, survey.length = SurveyLength)
 
@@ -85,11 +84,11 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2]-1, y=ADUFish[ , 1:33,
 
 # Make decent starting values for N
 N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
-Ni.max <- apply(N.init, 1, mean, na.rm = TRUE)
+Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
 Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
 k <- which(is.na(dat$y[ , , 1]), arr.ind=TRUE)
 N.init[k] <- Ni.max[k[,1]]
-N.init <- (N.init) * 2 + 1
+N.init <- (N.init + 1) * 2
 N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
 
 # simple initial N
@@ -98,12 +97,7 @@ N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
 inits <- function() list(N = N.init,
                          p.mean = runif(1, 0.4, 0.8))
 
-if(model == "overdispersion") {
-parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "sigma.eps.rho", "iota", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p", "K.0") #, "p")
-} else {
-  parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "sigma.0", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p", "K.0", "sigma.sy") #, "p")
-}
-
+  parameters <- c("N", "b", "alpha.0", "sigma.0", "p.mean", "N.region", "sigma.b", "mu.b", "b1.p") #, "p")
 
 # MCMC settings
 ni <- 1000
@@ -111,14 +105,10 @@ nt <- 1
 nb <- 1
 nc <- 3
 
-
-# bugs.dir <- getwd() # "C:/Program Files/WinBUGS14/"
-mod <- ifelse(model == "overdispersion", "Code/model_gompertz_od.R", "Code/model_gompertz.R")
-
 start.time = Sys.time() # Set timer
 
 # Call BUGS from R 
-out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = "Code/simple_gompertz.R", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
+out <- jags(data = dat, inits = inits, parameters.to.save = parameters, model.file = "Code/model_independent.R", n.chains = nc, n.thin = nt, n.iter = ni, n.burnin = nb, parallel = TRUE)
 
 # 
 end.time = Sys.time()
@@ -130,14 +120,7 @@ cat('Posterior computed in ', elapsed.time, ' minutes\n\n', sep='')
 # out <- update(out, n.iter = 20000)
 
 # Traceplots for parameters least likely to mix well or converge
-if(model == "overdispersion") {
-  jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "K.0", "sigma.eps.rho"))
-  } else {
-    jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "K.0"))
-  }
-
-
-jagsUI::traceplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "K.0", "sigma.sy"))
+  jagsUI::traceplot(out, parameters = c("alpha.0", "sigma.0", "sigma.b"))
 
 # Whisker plots
 whiskerplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
