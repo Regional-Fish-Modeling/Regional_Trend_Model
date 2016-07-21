@@ -2,6 +2,12 @@
 
 ## Objectives
 
+## State of Model Development
+
+Currently, the density dependent gompertz models do not mix well and do not converge. The `simple_gompertz.R` model is probably what to develop from for any density dependent models. It currently assumes constant r and K across sites but allows for environmental (annual) stochasticity. The convergence isn't great, especially for K. So far the model hasn't been able to handle random effects on `r` or `K`, given the current data.
+
+The density independent model (`model_independent.R`) currently includes meteorological covariates, a site-year overdispersion term to produce a random walk when added to the previous year's abundance (environmental stochasticity not captured by deterministic covariates). The model seems to work acceptably well.
+
 ## Run
 
 1. `run_gompertz.R`

@@ -27,12 +27,13 @@ model{
   #   sigma.b[h] ~ dunif(0, 100)
   # }
   
-  # fixed slops
+  # fixed slopes
   for(h in 1:nCovs) {
-    b[h] ~ dnorm(mu.b[h], tau.b[h])
-    mu.b[h] ~ dnorm(0, 0.01)
-    sigma.b[h] ~ dunif(0, 10)
-    tau.b[h] <- pow(sigma.b[h], -2)
+    b[h] ~ dnorm(0, 0.001)
+    # b[h] ~ dnorm(mu.b[h], tau.b[h])
+    # mu.b[h] ~ dnorm(0, 0.01)
+    # sigma.b[h] ~ dunif(0, 10)
+    # tau.b[h] <- pow(sigma.b[h], -2)
   }
   
   # Abundance
