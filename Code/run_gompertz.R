@@ -50,7 +50,7 @@ SurveyLength <- as.matrix(SurveyLength)
 # prcp7day=prcp7day.std, sampday=sampday.std
 
 rownames(ADUFish) <- NULL
-ADUFish
+ADUFish <- ADUFish[1:291, , ]
 dim(ADUFish)
 
 # Try on subset of data
@@ -65,10 +65,10 @@ if(testing ==TRUE) {
 # ADUFish[7,,]
 
 nSites <- dim(ADUFish)[1]
-nYears <- dim(ADUFish)[2]
+nYears <- dim(ADUFish)[2]-1
 nCovs <- 6
 
-dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
+dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2]-1, y=ADUFish[ , 1:33, ], nCovs=nCovs, fall.prcp=FallPrcpStd, winter.prcp=WinterPrcpStd, spring.prcp=SpringPrcpStd, 
             fall.tmean=FallTmeanStd, winter.tmean=WinterTmeanStd, spring.tmean=SpringTmeanStd, 
             prcp7day=prcp7day.std, sampday=sampday.std, elev=elev.std, survey.length = SurveyLength)
 
@@ -85,11 +85,11 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 
 # Make decent starting values for N
 N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
-Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
+Ni.max <- apply(N.init, 1, mean, na.rm = TRUE)
 Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
 k <- which(is.na(dat$y[ , , 1]), arr.ind=TRUE)
 N.init[k] <- Ni.max[k[,1]]
-N.init <- (N.init + 1) * 2
+N.init <- (N.init) * 2 + 1
 N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
 
 # simple initial N
@@ -106,9 +106,9 @@ parameters <- c("N", "K.0", "sigma.k", "alpha.r", "sigma.r", "b", "alpha.0", "si
 
 
 # MCMC settings
-ni <- 3000
-nt <- 3
-nb <- 1000
+ni <- 100
+nt <- 1
+nb <- 1
 nc <- 3
 
 
