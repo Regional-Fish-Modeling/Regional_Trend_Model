@@ -16,7 +16,7 @@ library(readr)
 library(dplyr)
 
 #---------- set model -----------
-testing <- TRUE
+testing <- FALSE
 
 
 #---------- Load Data ----------
@@ -49,7 +49,7 @@ SurveyLength <- as.matrix(SurveyLength)
 # prcp7day=prcp7day.std, sampday=sampday.std
 
 rownames(ADUFish) <- NULL
-ADUFish <- ADUFish[ , 2:33, ]
+ADUFish <- ADUFish[ , 1:33, ]
 dim(ADUFish)
 
 # Try on subset of data
@@ -83,26 +83,29 @@ dat <- list(nSites=dim(ADUFish)[1], nYears=dim(ADUFish)[2], y=ADUFish, nCovs=nCo
 # p.b2=array(rnorm(1,0), 1),
 
 # Make decent starting values for N
-N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
-Ni.max <- apply(N.init, 1, max, na.rm = TRUE)
-Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
-k <- which(is.na(dat$y[ , , 1]), arr.ind=TRUE)
-N.init[k] <- Ni.max[k[,1]]
-N.init <- (N.init) * 2 + 0
-N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
+# N.init <- apply(dat$y, 1:2, sum, na.rm = TRUE)
+# Ni.max <- apply(N.init, 1, median, na.rm = TRUE)
+# Ni.max[which(Ni.max == -Inf)] <- max(Ni.max, na.rm = TRUE)
+# k <- which(is.na(dat$y[ , , 1]), arr.ind=TRUE)
+# N.init[k] <- Ni.max[k[,1]]
+# N.init <- (N.init) * 2 + 0
+# N.init <- ceiling(N.init) # / SurveyLength[1:nrow(N.init), ]
 
 # simple initial N
-# N.init <- array(2 * max(dat$y, na.rm = TRUE), dim=c(nSites, nYears))
+N.init <- array(2 * max(dat$y, na.rm = TRUE), dim=c(nSites, nYears))
 
 inits <- function() list(N = N.init,
-                         p.mean = runif(1, 0.4, 0.8))
+                         alpha.0 = runif(1, 1, 3),
+                         sigma.0 = runif(1, 0.5, 3),
+                         sigma.rho = runif(1, 1, 2),
+                         p.mean = runif(1, 0.5, 0.8))
 
   parameters <- c("N", "alpha.0", "sigma.0", "p.mean", "N.region", "b1.p", "sigma.rho", "b") #, "p")
 
 # MCMC settings
-ni <- 3000
-nt <- 1
-nb <- 1
+ni <- 11000
+nt <- 3
+nb <- 5000
 nc <- 3
 
 start.time = Sys.time() # Set timer
@@ -120,8 +123,10 @@ cat('Posterior computed in ', elapsed.time, ' minutes\n\n', sep='')
 # out <- update(out, n.iter = 20000)
 
 # Traceplots for parameters least likely to mix well or converge
-  jagsUI::traceplot(out, parameters = c("alpha.0", "sigma.0", "sigma.rho", "b"))
+  jagsUI::traceplot(out, parameters = c("alpha.0", "sigma.0", "sigma.rho", "b", "p.mean"))
 
+  save.image("Output/MCMC_independent.RData")
+  
 # Whisker plots
 whiskerplot(out, parameters = c("alpha.0", "alpha.r", "sigma.0", "sigma.k", "sigma.r", "sigma.b", "sigma.eps.rho"))
 

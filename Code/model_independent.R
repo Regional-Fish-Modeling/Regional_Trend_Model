@@ -41,11 +41,11 @@ model{
   
   for(i in 1:nSites){
     N[i,1] ~ dpois(lambda[i,1])
-    log(lambda[i,1]) <- alpha.0 + site.0[i]
+    log(lambda[i,1]) <- alpha.0 + site.0[i] + log(survey.length[i,1])
     for(t in 2:nYears){
       N[i,t] ~ dpois(lambda.ef[i,t]) # t-1 is just for accounting
       # log(lambda[i,t-1]) <- log(N[i, t-1]) + b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + log(survey.length[i,t])
-      log(lambda[i,t]) <- b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + rho[i,t-1] # N[i, t-1] +
+      log(lambda[i,t]) <- b[1]*fall.prcp[i,t-1] + b[2]*winter.prcp[i,t] + b[3]*spring.prcp[i,t] + b[4]*fall.tmean[i,t-1] + b[5]*winter.tmean[i,t] + b[6]*spring.tmean[i,t] + rho[i,t-1] + log(survey.length[i,t])
       lambda.ef[i,t] <- N[i, t-1] + lambda[i,t]
     }
   }
