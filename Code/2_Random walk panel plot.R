@@ -1,3 +1,22 @@
+#################################
+# Make Timeseries Abundance Plots
+#################################
+
+#---------- load libraries ----------
+library(jagsUI)
+library(coda)
+library(ggplot2)
+library(dplyr)
+
+#---------- set conditions -----------
+model <- "gompertz"
+testing <- FALSE
+
+#--------- Load Data ----------
+load(paste0("Output/", model, "/", model, ".RData"))
+
+
+
 ###############################################################
 # Extract pop'n average coefficents
 # alpha0 = fixed intercept
@@ -122,11 +141,11 @@ for(t in 1:T){
 ########### PLOT
 res <- 6
 
+if(!dir.exists(paste0("Output/", model, "/Figures"))) dir.create(paste0("Output/", model, "/Figures"), recursive = TRUE)
+
 sitePlot <- c(1:N)
 
-name_figure <- 'AdultTrend.png'
-png(filename = name_figure, height = 500*res, width = 800*res, res=72*res)
-def.par <- par(no.readonly = TRUE)
+name_figure <- paste0("AdultTrend_", model)
 
 size.labels = 1
 size.text = 1.0
@@ -135,12 +154,19 @@ y.label = 'Abundance'
 
 plotYear <- 1982:2014
 
-
+# 10 plots per page
+nPages <- ceiling(N / 10)
+N.0 <- N
+counter <- 1
+for(page in 1:nPages) {
+  png(filename = paste0("Output/", model, "/Figures/", name_figure, "_", page, ".png"), height = 500*res, width = 800*res, res=72*res)
+  def.par <- par(no.readonly = TRUE)
+  pages <- page*10
 nf <- layout(matrix( c(1:(N)),nrow=5,ncol=2,byrow=T),  TRUE) 
-layout.show(nf)
+# layout.show(nf)
 par(mar=c(0.5,0.5,0.5,0.5),oma=c(3,3.5,0,1),mai=c(0.1,0.1,0.1,0) )	
 
-for(i in 1:N){
+for(i in counter:pages){
 
 # min(SiteTrendLCI[,i])
   # max(SiteTrendUCI[,i])
@@ -176,6 +202,9 @@ mtext(x.label, line = 1, side = 1, cex = size.text, outer=T)
 mtext(y.label, line = 1.5, side = 2, cex = size.text, outer=T)
 box()
 }
+counter <- page * 10 + 1
+dev.off()
+}
 
 par(def.par)
 dev.off()
@@ -189,5 +218,5 @@ N.region <- data.frame(Year = plotYear, Mean = out$mean$N.region, LCRI = out$q2.
 
 ggplot(N.region, aes(Year, Mean)) + geom_line() + geom_point() + geom_ribbon(aes(ymin = LCRI, ymax = UCRI), alpha = 0.3) + ylab("Regional abundance") + theme_bw()
 
-ggsave(filename = "Output/Figures/Regional_Abundance.png")
+ggsave(filename = paste0("Output/Figures/Regional_Abundance", model, ".png"))
 
